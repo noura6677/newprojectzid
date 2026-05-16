@@ -188,43 +188,28 @@ function renderCart() {
   $("#cartTotal").textContent = fmt(cartTotalPrice());
   renderLockedReward();
   renderSmartBundle();
-  renderComplements();
 }
 
-// ---------- حزمة ذكية داخل السلة ----------
+// ---------- حزمة ذكية داخل السلة (بصورة حقيقية للحزمة) ----------
 function renderSmartBundle() {
   const el = $("#smartBundle");
   const ids = cartLines();
   const parts = ids.length ? AIEngine.dynamicBundle(ids) : null;
   if (!parts) { el.classList.add("hidden"); return; }
   el.classList.remove("hidden");
+  const total = parts.reduce((s, p) => s + p.price, 0);
   el.innerHTML = `
-    <h4>✨ أكمل تجربتك</h4>
-    <p>أضف هذه المنتجات لتحصل على تجربة قهوة متكاملة</p>
-    <div class="sb-items">${parts.map((p) =>
-      `<div><span>${p.emoji}</span>${p.name}</div>`).join("")}</div>
-    <button class="sb-btn" id="sbAdd">أضف الكل (${fmt(parts.reduce((s, p) => s + p.price, 0))})</button>`;
+    <div class="sb-img">🎁<img src="${IMG("coffee,brewing,set", 51)}"
+      alt="حزمة" loading="lazy" onerror="this.style.display='none'"></div>
+    <div class="sb-in">
+      <h4>✨ أكمل تجربتك — حزمة مقترحة</h4>
+      <p>${parts.map((p) => p.name).join(" + ")}</p>
+      <button class="sb-btn" id="sbAdd">أضف الحزمة (${fmt(total)})</button>
+    </div>`;
   $("#sbAdd").addEventListener("click", () => {
     parts.forEach((p) => addToCart(p.id, true));
     toast("✨ أضفنا ما يكمّل تجربتك", "good");
   });
-}
-
-// ---------- يكمّل طلبك ----------
-function renderComplements() {
-  const el = $("#complements");
-  const ids = cartLines();
-  const comps = ids.length ? AIEngine.complementsFor(ids).slice(0, 6) : [];
-  if (!comps.length) { el.classList.add("hidden"); return; }
-  el.classList.remove("hidden");
-  $("#compRow").innerHTML = comps.map((p) => `
-    <div class="comp-card">
-      <div class="cimg">${p.emoji}${imgTag(p)}</div>
-      <b>${p.name}</b><small>${fmt(p.price)}</small>
-      <button class="comp-add" data-add="${p.id}">+ أضف</button>
-    </div>`).join("");
-  $("#compRow").querySelectorAll("[data-add]").forEach((b) =>
-    b.addEventListener("click", () => addToCart(b.dataset.add, true)));
 }
 
 // ---------- وضع البيع + المستويات ----------
@@ -248,7 +233,7 @@ function updateLevels() {
   const next = lv[idx + 1];
   const frac = next ? (progress - lv[idx].need) / (next.need - lv[idx].need) : 1;
   const overall = ((idx + (next ? Math.min(frac, 1) : 0)) / (lv.length - 1)) * 100;
-  $("#lvlFill").style.height = overall + "%";
+  $("#lvlFill").style.width = overall + "%";
 
   document.querySelectorAll(".lvl-node").forEach((n) => {
     const i = +n.dataset.i;
@@ -393,10 +378,11 @@ function spinWheel() {
 
 // ---------- المكافأة + المؤقت ----------
 function grantReward(prize) {
-  State.reward = { label: prize.label, emoji: prize.emoji };
+  State.reward = { label: prize.label, emoji: prize.emoji, img: prize.img };
   State.rewardActivated = false;
   State.mode = "REWARD";
-  $("#rewardEmoji").textContent = prize.emoji;
+  $("#rewardImg").innerHTML = `${prize.emoji}<img src="${prize.img}" alt="${prize.label}"
+    onerror="this.style.display='none'">`;
   $("#rewardLabel").textContent = prize.label;
   $("#rewardModal").classList.remove("hidden");
   setBubble(`🎁 مكافأتك «${prize.label}» محفوظة — أضف منتجاً واحداً لتفعيلها قبل انتهاء الوقت!`);
@@ -436,8 +422,12 @@ function renderLockedReward() {
   el.classList.remove("hidden");
   el.classList.toggle("activated", State.rewardActivated);
   el.innerHTML = `
-    <div class="lr-top">${State.reward.emoji} مكافأة: ${State.reward.label}
-      <span>${State.rewardActivated ? "✅" : "🔒"}</span></div>
+    <div class="lr-top">
+      <div class="lr-img">${State.reward.emoji}<img src="${State.reward.img}"
+        alt="${State.reward.label}" onerror="this.style.display='none'"></div>
+      <div>مكافأة: ${State.reward.label}
+        <span>${State.rewardActivated ? "✅" : "🔒"}</span></div>
+    </div>
     <div class="lr-state">${State.rewardActivated
       ? "تم التفعيل — أضيفت لطلبك."
       : "غير مفعّلة بعد · ☕ أضف منتجاً واحداً لتفعيلها"}</div>`;
