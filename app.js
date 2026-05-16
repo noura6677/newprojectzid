@@ -249,6 +249,8 @@ function updateLevels() {
 
 // ---------- لحظة الاحتفال ----------
 function celebrate() {
+  const cur = DEAL_CONFIG.levels[State.levelIndex];
+  $("#celebrateBadge").textContent = `${cur.icon} ${cur.name}`;
   const wrap = $("#confetti");
   const colors = ["#c9962e", "#6f4e37", "#3c8a4e", "#e0b653", "#a9743b"];
   wrap.innerHTML = "";
