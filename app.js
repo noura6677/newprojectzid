@@ -160,7 +160,7 @@ function renderCart() {
     State.mode = "PASSIVE";
     State.levelIndex = 0;
     $("#aiLevels").classList.add("hidden");
-    setBubble("أهلاً بك في نجدية — تبي نساعدك تختار قهوتك؟");
+    setBubble("أهلاً بك في نجدية — هل تحب أن نساعدك في اختيار قهوتك؟");
   } else if (State.mode === "ACTIVE" || State.mode === "REWARD") {
     updateLevels();
   }

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>نجدية ☕ — قهوة مختصة وأدوات تحضير</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -47,26 +48,27 @@
   </div>
 
   <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
     <div class="hero-inner">
-      <span class="hero-kicker">طازجة · محمّصة بعناية</span>
-      <h1>قهوة مختصة تليق بذوقك ☕</h1>
-      <p>حبوب منتقاة من أجود المزارع، وأدوات تحضير احترافية — تجربة قهوة متكاملة توصلك لباب بيتك.</p>
+      <span class="hero-kicker">طازجة · محمّصة بعناية فائقة</span>
+      <h1>قهوة مختصة تليق بذوقك</h1>
+      <p>حبوب منتقاة من أجود المزارع وأدوات تحضير احترافية — تجربة قهوة متكاملة تصل إلى باب منزلك.</p>
       <button class="hero-btn" id="heroBtn">تسوّق الآن</button>
     </div>
   </section>
 
   <div class="trust">
-    <div><span>🚚</span><b>توصيل سريع</b><small>خلال 1–3 أيام</small></div>
-    <div><span>🔒</span><b>دفع آمن</b><small>حماية كاملة</small></div>
-    <div><span>🔥</span><b>تحميص طازج</b><small>عند الطلب</small></div>
-    <div><span>↩️</span><b>إرجاع سهل</b><small>خلال 14 يوم</small></div>
+    <div><span>🚚</span><b>توصيل سريع</b><small>خلال 1–3 أيام عمل</small></div>
+    <div><span>🔒</span><b>دفع آمن</b><small>حماية كاملة للبيانات</small></div>
+    <div><span>🔥</span><b>تحميص طازج</b><small>يُحمَّص عند الطلب</small></div>
+    <div><span>↩️</span><b>إرجاع سهل</b><small>خلال 14 يوماً</small></div>
   </div>
 
   <main>
     <section class="bundles-sec" id="bundlesSec">
       <div class="sec-head">
         <h2>حزم مختارة</h2>
-        <p>وفّر وقتك — تجارب متكاملة جهّزناها لك</p>
+        <p>تجارب متكاملة جهّزناها لك بعناية — لتوفّر وقتك</p>
       </div>
       <div id="bundles" class="bundles"></div>
     </section>
@@ -130,8 +132,11 @@
 
   <!-- فقاعة المساعد -->
   <div id="aiBubble" class="ai-bubble">
-    <div class="bubble-avatar">☕</div>
-    <div class="bubble-text" id="bubbleText">أهلاً بك في نجدية — تبي نساعدك تختار قهوتك؟</div>
+    <div class="bubble-avatar">☕<i class="bubble-online" aria-hidden="true"></i></div>
+    <div class="bubble-wrap">
+      <span class="bubble-name">مساعد نجدية<i class="bubble-typing" aria-hidden="true"><b></b><b></b><b></b></i></span>
+      <div class="bubble-text" id="bubbleText">أهلاً بك في نجدية — هل تحب أن نساعدك في اختيار قهوتك؟</div>
+    </div>
   </div>
 
   <div id="toasts" class="toasts"></div>
@@ -150,7 +155,7 @@
       <div class="confetti" id="confetti"></div>
       <div class="celebrate-emoji">🎉</div>
       <h3>تهانينا!</h3>
-      <p>فُتح لك <strong>نظام المستويات</strong> — كل منتج يرفع مستواك ويفتح مزايا أجمل!</p>
+      <p>فُتح لك <strong>نظام المستويات</strong> — كل منتج تضيفه يرفع مستواك ويفتح مزايا أجمل.</p>
       <div class="celebrate-badge" id="celebrateBadge">🌱 مبتدئ</div>
       <button id="celebrateClose" class="checkout-btn">يلا نبدأ ☕</button>
     </div>
