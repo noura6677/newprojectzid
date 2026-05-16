@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>مراجعة صور نجدية</title>
+<style>
+  body{font-family:system-ui,"Segoe UI",sans-serif;background:#f6f0e8;color:#2c2018;margin:0;padding:20px}
+  h1{text-align:center;color:#6f4e37}
+  .note{text-align:center;color:#8a7a6a;max-width:640px;margin:6px auto 26px;font-size:14px}
+  .item{background:#fff;border:1px solid #e6dccd;border-radius:16px;padding:16px;
+    margin:0 auto 18px;max-width:1000px}
+  .item h2{font-size:17px;margin:0 0 12px;color:#4a3324}
+  .item h2 code{background:#f1e8da;padding:2px 8px;border-radius:6px;font-size:13px}
+  .cands{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .cand{text-align:center}
+  .cand .lbl{font-weight:800;color:#c9962e;margin-bottom:6px;font-size:15px}
+  .cand img{width:100%;height:200px;object-fit:cover;border-radius:12px;
+    background:#ead9c0;border:1px solid #e6dccd}
+  @media(max-width:760px){.cands{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <h1>مراجعة صور المتجر ☕</h1>
+  <p class="note">شوفي كل منتج/حزمة وله 3 صور مرشّحة (A / B / C). اختاري الأنسب لكل واحد
+  وأرسلي لي القائمة، مثال: <b>إثيوبيا = B · مطحنة = A · حزمة المحترف = C</b></p>
+  <div id="list"></div>
+
+<script>
+const W = "?auto=format&fit=crop&w=600&q=80";
+const U = (id) => "https://images.unsplash.com/photo-" + id + W;
+
+// لكل عنصر: 3 معرّفات صور Unsplash ثابتة (محددة، غير عشوائية)
+const ITEMS = [
+  ["sp1 — إثيوبيا يرغاتشيف (بن مختص)", ["1447933601403-0c6688de566e","1559056199-641a0ac8b55e","1442550528053-c431ecb55509"]],
+  ["sp2 — كولومبيا هويلا (بن مختص)", ["1610889556528-9a770e32642f","1611854779393-1b2da9d400fe","1514432324607-a09d9b4aefdd"]],
+  ["sp3 — كينيا AA (بن مختص)", ["1442512595331-e89e73853f31","1559056199-641a0ac8b55e","1497515114629-f71d768fd07c"]],
+  ["ar1 — قهوة عربية بالهيل", ["1578374173705-969cbe6f2d6b","1606914501449-5a96b6ce24ca","1565452344518-47faca79dc69"]],
+  ["ar2 — قهوة عربية بالزعفران", ["1565452344518-47faca79dc69","1578374173705-969cbe6f2d6b","1606914501449-5a96b6ce24ca"]],
+  ["tl1 — مقطرة V60", ["1495774856032-8b90bbb32b32","1521302080334-4bebac2763a6","1610632380989-680fe40816c6"]],
+  ["tl2 — فرنش برس", ["1544776193-352d25ca82cd","1574914629385-46448b767aec","1517701604599-bb29b565090c"]],
+  ["tl3 — مطحنة يدوية", ["1606937295547-bc0f668595e5","1610632380989-680fe40816c6","1495774856032-8b90bbb32b32"]],
+  ["tl4 — فلاتر ورقية V60", ["1610632380989-680fe40816c6","1521302080334-4bebac2763a6","1495774856032-8b90bbb32b32"]],
+  ["cp1 — كوب سيراميك", ["1514432324607-a09d9b4aefdd","1517256064527-09c73fc73e38","1447933601403-0c6688de566e"]],
+  ["cp2 — مج حراري للتنقل", ["1577937927133-66ef06acdf18","1517256064527-09c73fc73e38","1514432324607-a09d9b4aefdd"]],
+  ["bn1 — بوكس تجربة المختصة (هدية)", ["1607681034540-2c46cc71896d","1606914501449-5a96b6ce24ca","1513267048331-5611cad62e41"]],
+  ["bn2 — بوكس البداية (طقم)", ["1513267048331-5611cad62e41","1607681034540-2c46cc71896d","1495774856032-8b90bbb32b32"]],
+  ["bset1 — حزمة: تجربة القهوة الكاملة", ["1495774856032-8b90bbb32b32","1513267048331-5611cad62e41","1447933601403-0c6688de566e"]],
+  ["bset2 — حزمة: ركن الضيافة العربية", ["1578374173705-969cbe6f2d6b","1606914501449-5a96b6ce24ca","1565452344518-47faca79dc69"]],
+  ["bset3 — حزمة: طقم المحترف", ["1606937295547-bc0f668595e5","1513267048331-5611cad62e41","1544776193-352d25ca82cd"]],
+  ["جائزة — كوب مجاني", ["1514432324607-a09d9b4aefdd","1517256064527-09c73fc73e38","1447933601403-0c6688de566e"]],
+  ["جائزة — بوكس قهوة", ["1607681034540-2c46cc71896d","1513267048331-5611cad62e41","1606914501449-5a96b6ce24ca"]],
+  ["جائزة — منتج إضافي (بن)", ["1559056199-641a0ac8b55e","1447933601403-0c6688de566e","1442550528053-c431ecb55509"]],
+];
+
+document.getElementById("list").innerHTML = ITEMS.map(([name, ids]) => `
+  <div class="item">
+    <h2>${name}</h2>
+    <div class="cands">
+      ${["A","B","C"].map((L,i)=>`
+        <div class="cand"><div class="lbl">${L}</div>
+          <img src="${U(ids[i])}" alt="${L}"
+            onerror="this.style.opacity=.25;this.alt='تعذّر تحميل '+this.alt"></div>`).join("")}
+    </div>
+  </div>`).join("");
+</script>
+</body>
+</html>
