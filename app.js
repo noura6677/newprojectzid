@@ -1,17 +1,16 @@
-// ================== صانع الصفقات AI — محرك السلوك (Simulation) ==================
+// ================== مساعد متجر نجدية — محرك السلوك (Simulation) ==================
 // كل المنطق محاكاة داخل الديمو فقط: لا دفع/خصومات/تجارة حقيقية.
 
 const State = {
   mode: "PASSIVE",            // PASSIVE | ACTIVE | CHECKOUT | REWARD
   cart: {},                   // id -> qty
   category: "all",
-  progress: 0,                // عدّاد التقدّم في المستويات
+  progress: 0,
   levelIndex: 0,
-  respondedToAI: false,       // هل أضاف منتجاً اقترحه الـ AI؟
-  reward: null,               // {label,emoji}
+  respondedToAI: false,
+  reward: null,
   rewardActivated: false,
   timer: null,
-  bubbleShown: false,
 };
 
 const $ = (s) => document.querySelector(s);
@@ -19,25 +18,16 @@ const fmt = (n) => n + " ر.س";
 
 // ---------- محرك تحليل المنتجات + الاقتراح الذكي ----------
 const AIEngine = {
-  // يستنتج المنتجات المكمّلة بناءً على وسوم/فئة ما في السلة
   complementsFor(cartIds) {
     const inCart = cartIds.map((id) => PRODUCTS.find((p) => p.id === id));
     const cats = new Set(inCart.map((p) => p.cat));
     const wants = new Set();
-
-    if (cats.has("specialty") || cats.has("arabic")) {
-      wants.add("tools"); wants.add("cups");           // قهوة → تحتاج أداة + كوب
-    }
+    if (cats.has("specialty") || cats.has("arabic")) { wants.add("tools"); wants.add("cups"); }
     if (cats.has("tools")) { wants.add("specialty"); wants.add("cups"); }
     if (cats.has("cups")) { wants.add("specialty"); }
     if (cats.size === 0) { wants.add("bundle"); }
-
-    return PRODUCTS.filter(
-      (p) => wants.has(p.cat) && !cartIds.includes(p.id)
-    ).slice(0, 4);
+    return PRODUCTS.filter((p) => wants.has(p.cat) && !cartIds.includes(p.id)).slice(0, 4);
   },
-
-  // يبني "تجربة قهوة كاملة" ديناميكياً
   dynamicBundle(cartIds) {
     const hasCoffee = cartIds.some((id) => {
       const p = PRODUCTS.find((x) => x.id === id);
@@ -47,8 +37,7 @@ const AIEngine = {
     const tool = PRODUCTS.find((p) => p.cat === "tools" && !cartIds.includes(p.id));
     const cup = PRODUCTS.find((p) => p.cat === "cups" && !cartIds.includes(p.id));
     const parts = [tool, cup].filter(Boolean);
-    if (!parts.length) return null;
-    return parts;
+    return parts.length ? parts : null;
   },
 };
 
@@ -56,15 +45,14 @@ const AIEngine = {
 function renderProducts() {
   const wrap = $("#products");
   const list = State.category === "all"
-    ? PRODUCTS
-    : PRODUCTS.filter((p) => p.cat === State.category);
+    ? PRODUCTS : PRODUCTS.filter((p) => p.cat === State.category);
   const recoIds = State.mode === "ACTIVE"
     ? new Set(AIEngine.complementsFor(Object.keys(State.cart)).map((p) => p.id))
     : new Set();
 
   wrap.innerHTML = list.map((p) => `
     <div class="card">
-      ${recoIds.has(p.id) ? '<span class="reco-tag">🧠 اقتراح صانع الصفقات</span>' : ""}
+      ${recoIds.has(p.id) ? '<span class="reco-tag">✨ مختارة لك</span>' : ""}
       <div class="emoji">${p.emoji}</div>
       <h3>${p.name}</h3>
       <p class="desc">${p.desc}</p>
@@ -82,9 +70,7 @@ function renderProducts() {
 
 // ---------- السلة ----------
 function cartLines() { return Object.keys(State.cart); }
-function cartQtyTotal() {
-  return Object.values(State.cart).reduce((a, b) => a + b, 0);
-}
+function cartQtyTotal() { return Object.values(State.cart).reduce((a, b) => a + b, 0); }
 function cartTotalPrice() {
   return cartLines().reduce((s, id) =>
     s + PRODUCTS.find((p) => p.id === id).price * State.cart[id], 0);
@@ -101,15 +87,12 @@ function addToCart(id, fromReco = false) {
     updateLevels();
   }
 
-  // تفعيل المكافأة المعلّقة عند إضافة منتج ثانٍ
   if (State.reward && !State.rewardActivated && cartLines().length >= 2) {
     activateReward();
   }
 
   renderProducts();
   renderCart();
-  openCart();
-
   if (State.mode === "ACTIVE" && !fromReco) suggestNext();
 }
 
@@ -151,12 +134,12 @@ function renderCart() {
 // ---------- وضع البيع + المستويات ----------
 function activateSellingMode() {
   State.mode = "ACTIVE";
-  hideBubble();
-  $("#aiFloating").classList.remove("hidden");
-  toast("🎉 تم فتح نظام المستويات معك! كل منتج إضافي يرفع مستواك.", "gold");
   State.progress = 1;
+  $("#aiLevels").classList.remove("hidden");
   updateLevels();
-  setTimeout(suggestNext, 900);
+  celebrate();
+  setBubble("ابدأ تجربتك! نختار لك ما يكمّل قهوتك خطوة بخطوة ☕");
+  setTimeout(suggestNext, 1200);
 }
 
 function updateLevels() {
@@ -166,52 +149,71 @@ function updateLevels() {
   const leveledUp = idx > State.levelIndex;
   State.levelIndex = idx;
 
-  $("#aiLevelIcon").textContent = lv[idx].icon;
-  $("#aiLevelName").textContent = lv[idx].name;
   const next = lv[idx + 1];
-  const pct = next
-    ? Math.min(100, ((State.progress - lv[idx].need) /
-        (next.need - lv[idx].need)) * 100)
-    : 100;
-  $("#aiProgressBar").style.width = pct + "%";
+  const frac = next
+    ? (State.progress - lv[idx].need) / (next.need - lv[idx].need) : 1;
+  const overall = ((idx + (next ? Math.min(frac, 1) : 0)) / (lv.length - 1)) * 100;
+  $("#lvlFill").style.height = overall + "%";
+
+  document.querySelectorAll(".lvl-node").forEach((n) => {
+    const i = +n.dataset.i;
+    n.classList.toggle("active", i === idx);
+    n.classList.toggle("done", i < idx);
+  });
 
   if (leveledUp) toast(`🏆 ترقّيت إلى مستوى «${lv[idx].name}»!`, "good");
 }
 
-// ---------- اقتراح ذكي (Cross-sell + Bundle ديناميكي) ----------
+// ---------- لحظة الاحتفال ----------
+function celebrate() {
+  const wrap = $("#confetti");
+  const colors = ["#c9962e", "#6f4e37", "#3c8a4e", "#e0b653", "#a9743b"];
+  wrap.innerHTML = "";
+  for (let i = 0; i < 46; i++) {
+    const c = document.createElement("i");
+    c.style.left = Math.random() * 100 + "%";
+    c.style.background = colors[i % colors.length];
+    c.style.animationDuration = (1.6 + Math.random() * 1.6) + "s";
+    c.style.animationDelay = (Math.random() * 0.6) + "s";
+    wrap.appendChild(c);
+  }
+  $("#celebrateModal").classList.remove("hidden");
+}
+
+// ---------- اقتراح ذكي (يظهر داخل فقاعة المساعد) ----------
 function suggestNext() {
   const ids = cartLines();
   const bundle = AIEngine.dynamicBundle(ids);
   if (bundle) {
-    const names = bundle.map((p) => p.name).join(" + ");
-    toast(`🧠 صانع الصفقات: حوّل قهوتك إلى تجربة كاملة — أضف ${names}`);
+    setBubble(`💡 حوّل قهوتك لتجربة كاملة — جرّب ${bundle.map((p) => p.name).join(" + ")}`);
     return;
   }
   const comps = AIEngine.complementsFor(ids);
   if (comps.length) {
-    toast(`🧠 يكمل مشترياتك: ${comps[0].name} — موجود بعلامة الاقتراح بالأسفل`);
+    setBubble(`💡 يكمل تجربتك: ${comps[0].name} — تلقاه بعلامة ✨ بالأسفل`);
+  } else {
+    setBubble("تجربتك صارت متكاملة ☕ استمتع بقهوتك!");
   }
 }
 
 // ---------- طبقة التحفيز / الروليت ----------
 function onCheckout() {
   const onlyOne = cartLines().length === 1;
-  if (onlyOne && !State.respondedToAI && !State.reward) {
+  if (!cartLines().length) {
+    toast("السلة فارغة — أضف منتجاً أولاً ☕");
+  } else if (onlyOne && !State.respondedToAI && !State.reward) {
     State.mode = "CHECKOUT";
     openRoulette();
-  } else if (!cartLines().length) {
-    toast("السلة فارغة — أضف منتجاً أولاً ☕");
   } else {
-    toast("✅ محاكاة إتمام الشراء — هذا ديمو بدون دفع حقيقي.", "good");
+    toast("✅ تمت محاكاة الطلب بنجاح — شكراً لك!", "good");
   }
 }
 
-// عجلة الروليت على Canvas
 let wheelAngle = 0;
 function drawWheel() {
   const c = $("#wheel"), ctx = c.getContext("2d");
   const n = ROULETTE_PRIZES.length, R = 160, cx = 160, cy = 160;
-  const colors = ["#6f4e37","#c9962e","#4a3324","#3c8a4e","#a9743b"];
+  const colors = ["#6f4e37", "#c9962e", "#4a3324", "#3c8a4e", "#a9743b"];
   ctx.clearRect(0, 0, 320, 320);
   for (let i = 0; i < n; i++) {
     const a0 = (i / n) * 2 * Math.PI + wheelAngle;
@@ -251,7 +253,6 @@ function spinWheel() {
   const n = ROULETTE_PRIZES.length;
   const idx = weightedPrize();
   const seg = 360 / n;
-  // الزاوية بحيث يقف المؤشر العلوي على القطاع الفائز
   const target = 360 * 6 + (360 - (idx * seg + seg / 2)) - 90;
   $("#wheel").style.transform = `rotate(${target}deg)`;
   setTimeout(() => {
@@ -265,11 +266,10 @@ function grantReward(prize) {
   State.reward = { label: prize.label, emoji: prize.emoji };
   State.rewardActivated = false;
   State.mode = "REWARD";
-
   $("#rewardEmoji").textContent = prize.emoji;
   $("#rewardLabel").textContent = prize.label;
   $("#rewardModal").classList.remove("hidden");
-
+  setBubble(`🎁 مكافأتك «${prize.label}» محفوظة — أضف منتجاً واحداً لتفعيلها قبل انتهاء الوقت!`);
   startTimer(DEAL_CONFIG.timerSeconds);
   renderCart();
 }
@@ -285,6 +285,7 @@ function startTimer(secs) {
       clearInterval(State.timer);
       if (!State.rewardActivated) {
         toast("⏱️ انتهى الوقت — مكافأتك ما زالت معلّقة 🔒");
+        setBubble("مكافأتك ما زالت معلّقة 🔒 — أضف منتجاً لتفعيلها");
         renderLockedReward();
       }
     }
@@ -295,6 +296,7 @@ function activateReward() {
   State.rewardActivated = true;
   clearInterval(State.timer);
   toast(`✅ تم تفعيل مكافأتك: ${State.reward.emoji} ${State.reward.label}!`, "good");
+  setBubble(`✅ تم تفعيل مكافأتك: ${State.reward.emoji} ${State.reward.label} — مبروك!`);
   renderLockedReward();
 }
 
@@ -313,13 +315,8 @@ function renderLockedReward() {
     }</div>`;
 }
 
-// ---------- الفقاعة (وضع المراقبة) ----------
-function showBubble() {
-  if (State.bubbleShown || State.mode !== "PASSIVE") return;
-  State.bubbleShown = true;
-  $("#aiBubble").classList.remove("hidden");
-}
-function hideBubble() { $("#aiBubble").classList.add("hidden"); }
+// ---------- فقاعة المساعد ----------
+function setBubble(text) { $("#bubbleText").textContent = text; }
 
 // ---------- إشعارات ----------
 function toast(msg, kind = "") {
@@ -346,11 +343,10 @@ function init() {
   renderProducts();
   renderCart();
 
-  document.querySelectorAll(".nav-link, .nav a").forEach((a) =>
+  document.querySelectorAll(".nav a").forEach((a) =>
     a.addEventListener("click", (e) => {
       e.preventDefault();
-      document.querySelectorAll(".nav a").forEach((x) =>
-        x.classList.remove("active"));
+      document.querySelectorAll(".nav a").forEach((x) => x.classList.remove("active"));
       a.classList.add("active");
       State.category = a.dataset.cat;
       renderProducts();
@@ -360,24 +356,16 @@ function init() {
   $("#closeCart").addEventListener("click", closeCart);
   $("#overlay").addEventListener("click", closeCart);
   $("#checkoutBtn").addEventListener("click", onCheckout);
-  $("#bubbleClose").addEventListener("click", hideBubble);
-  $("#aiBubble").addEventListener("click", (e) => {
-    if (e.target.id !== "bubbleClose") {
-      toast("🧠 ابدأ بإضافة منتج وسأبني لك تجربة قهوة كاملة ☕");
-    }
-  });
   $("#spinBtn").addEventListener("click", spinWheel);
   $("#skipRoulette").addEventListener("click", () => {
     $("#rouletteModal").classList.add("hidden");
-    toast("تم التخطّي — هذا ديمو بدون دفع حقيقي.");
+    toast("تم التخطّي ☕");
   });
+  $("#celebrateClose").addEventListener("click", () =>
+    $("#celebrateModal").classList.add("hidden"));
   $("#rewardGoShopping").addEventListener("click", () => {
     $("#rewardModal").classList.add("hidden");
-    openCart();
   });
-
-  // وضع المراقبة: فقاعة خفيفة بعد تصفّح قصير
-  setTimeout(showBubble, 4000);
 }
 
 document.addEventListener("DOMContentLoaded", init);

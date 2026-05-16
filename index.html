@@ -3,18 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>نجدية ☕ — مدعوم بصانع الصفقات AI</title>
+<title>نجدية ☕ — قهوة مختصة</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-
-  <!-- شريط التنبيه التجريبي -->
-  <div class="demo-banner">
-    وضع تجريبي (Demo Sandbox) — لا يوجد دفع حقيقي ولا خصومات حقيقية. الهدف عرض أداة
-    <strong>صانع الصفقات AI</strong>
-  </div>
 
   <header class="topbar">
     <div class="brand">
@@ -35,8 +29,8 @@
   </header>
 
   <section class="hero">
-    <h1>تجربة قهوة تليق بذوقك ☕</h1>
-    <p>متجر تجريبي يعرض كيف يحوّل <strong>صانع الصفقات AI</strong> أي متجر إلى تجربة بيع ذكية.</p>
+    <h1>اكتشف قهوتك المفضّلة ☕</h1>
+    <p>قهوة مختصة وعربية وأدوات تحضير مختارة بعناية — تجربة تليق بذوقك.</p>
   </section>
 
   <main>
@@ -57,37 +51,48 @@
         <span>الإجمالي (تجريبي)</span>
         <strong id="cartTotal">0 ر.س</strong>
       </div>
-      <button id="checkoutBtn" class="checkout-btn">إتمام الشراء (محاكاة)</button>
+      <button id="checkoutBtn" class="checkout-btn">إتمام الشراء</button>
     </div>
   </aside>
   <div id="overlay" class="overlay hidden"></div>
 
-  <!-- فقاعة المراقبة Passive -->
-  <div id="aiBubble" class="ai-bubble hidden">
-    <button class="bubble-close" id="bubbleClose">✕</button>
-    <div class="bubble-avatar">🧠</div>
-    <div class="bubble-text" id="bubbleText">☕ تبي نساعدك تختار تجربة قهوة تناسب ذوقك؟</div>
+  <!-- فقاعة المساعد — ثابتة دائماً (يمين) -->
+  <div id="aiBubble" class="ai-bubble">
+    <div class="bubble-avatar">☕</div>
+    <div class="bubble-text" id="bubbleText">تبي نساعدك تختار تجربة قهوة تناسب ذوقك؟</div>
   </div>
 
-  <!-- الأيقونة العائمة Active (نظام المستويات) -->
-  <div id="aiFloating" class="ai-floating hidden">
-    <div class="ai-floating-ring">
-      <span id="aiLevelIcon">🌱</span>
+  <!-- شريط المستويات العمودي (يمين) -->
+  <div id="aiLevels" class="ai-levels hidden">
+    <div class="lvl-nodes">
+      <div class="lvl-node" data-i="3"><span>🏆</span><b>محترف</b></div>
+      <div class="lvl-node" data-i="2"><span>🔥</span><b>خبير</b></div>
+      <div class="lvl-node" data-i="1"><span>☕</span><b>هاوي</b></div>
+      <div class="lvl-node" data-i="0"><span>🌱</span><b>مبتدئ</b></div>
     </div>
-    <div class="ai-floating-info">
-      <span id="aiLevelName">مبتدئ</span>
-      <div class="ai-progress"><i id="aiProgressBar"></i></div>
-    </div>
+    <div class="lvl-track"><i id="lvlFill"></i></div>
   </div>
 
-  <!-- إشعارات صانع الصفقات -->
+  <!-- إشعارات -->
   <div id="toasts" class="toasts"></div>
+
+  <!-- لحظة احتفال فتح المستويات -->
+  <div id="celebrateModal" class="modal hidden">
+    <div class="celebrate-card">
+      <div class="confetti" id="confetti"></div>
+      <div class="celebrate-emoji">🎉</div>
+      <h3>تهانينا!</h3>
+      <p>فُتح لك <strong>نظام المستويات</strong> — كل منتج يرفع مستواك ويفتح مزايا أجمل!</p>
+      <div class="celebrate-badge">🌱 مبتدئ</div>
+      <button id="celebrateClose" class="checkout-btn">يلا نبدأ ☕</button>
+    </div>
+  </div>
 
   <!-- نافذة الروليت -->
   <div id="rouletteModal" class="modal hidden">
     <div class="modal-card roulette-card">
-      <h3>🎡 عجلة صانع الصفقات</h3>
-      <p class="muted">لاحظنا أن سلتك فيها منتج واحد فقط — جرّب حظك بمكافأة!</p>
+      <h3>🎡 عجلة الحظ</h3>
+      <p class="muted">جرّب حظك بمكافأة تكمّل تجربتك!</p>
       <div class="wheel-wrap">
         <div class="wheel-pointer">▼</div>
         <canvas id="wheel" width="320" height="320"></canvas>
@@ -112,18 +117,6 @@
       <button id="rewardGoShopping" class="checkout-btn">تصفّح المنتجات</button>
     </div>
   </div>
-
-  <!-- لوحة شرح الأداة -->
-  <footer class="explain">
-    <h2>كيف يعمل «صانع الصفقات AI»؟</h2>
-    <div class="explain-grid">
-      <div><span>🟡</span><h4>وضع المراقبة</h4><p>يحلّل سلوك التصفح ويبدأ التفاعل بفقاعة خفيفة بدون ضغط.</p></div>
-      <div><span>🟢</span><h4>وضع البيع</h4><p>عند أول إضافة للسلة يفعّل نظام المستويات ويقترح منتجات مكمّلة وبندلات ديناميكية.</p></div>
-      <div><span>🎯</span><h4>طبقة التحفيز</h4><p>عند الدفع بمنتج واحد فقط يطلق الروليت لرفع متوسط السلة.</p></div>
-      <div><span>⏱️</span><h4>المكافأة والمؤقت</h4><p>مكافأة مقفلة + مؤقت يسرّع القرار ويزيد إضافة منتج ثانٍ.</p></div>
-    </div>
-    <p class="footnote">صانع الصفقات يحوّل أي متجر إلى تجربة بيع ذكية تزيد المنتجات في السلة عبر AI + Behavior + Gamification + Timing.</p>
-  </footer>
 
   <script src="data.js"></script>
   <script src="app.js"></script>
