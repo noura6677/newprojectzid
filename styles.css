@@ -321,6 +321,19 @@ main{max-width:1180px;margin:0 auto;padding:var(--s8) 22px var(--s8)}
 .bubble-typing b:nth-child(3){animation-delay:.36s}
 @keyframes typing{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 .bubble-text{font-size:13.5px;color:var(--ink-2);line-height:1.6}
+.bubble-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.bubble-chips.hidden{display:none}
+.bchip{font-family:"Tajawal",sans-serif;font-size:12.5px;font-weight:700;
+  color:var(--brand-d);background:rgba(201,150,46,.12);
+  border:1px solid rgba(201,150,46,.4);border-radius:999px;
+  padding:7px 13px;cursor:pointer;transition:.18s var(--ease);
+  animation:chipIn .35s var(--ease) both}
+.bchip:hover{background:linear-gradient(135deg,var(--gold),var(--brand));
+  color:#fff;border-color:transparent;transform:translateY(-2px);
+  box-shadow:0 6px 16px rgba(111,78,55,.28)}
+.bchip:nth-child(2){animation-delay:.07s}
+.bchip:nth-child(3){animation-delay:.14s}
+@keyframes chipIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 /* ===== إشعارات ===== */
 .toasts{position:fixed;top:78px;left:20px;z-index:80;display:flex;flex-direction:column;gap:10px}

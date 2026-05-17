@@ -101,7 +101,6 @@ const ROULETTE_PRIZES = [
   { label: "كوب مجاني",  emoji: "🍵", weight: 25, img: U("1514432324607-a09d9b4aefdd") },
   { label: "بوكس قهوة",  emoji: "🎁", weight: 10, img: U("1607681034540-2c46cc71896d") },
   { label: "منتج إضافي", emoji: "☕", weight: 20, img: U("1447933601403-0c6688de566e") },
-  { label: "حظ أوفر",    emoji: "🍀", weight: 15, img: U("1513267048331-5611cad62e41") },
 ];
 
 const DEAL_CONFIG = {

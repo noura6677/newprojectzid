@@ -159,13 +159,34 @@ function renderCart() {
   const ids = cartLines();
 
   // التقدّم مشتق من السلة — يرتفع وينزل تلقائياً
-  if (cartQtyTotal() === 0 && State.mode !== "PASSIVE") {
-    State.mode = "PASSIVE";
-    State.levelIndex = 0;
-    $("#aiLevels").classList.add("hidden");
-    setBubble("أهلاً بك في نجدية — هل تحب أن نساعدك في اختيار قهوتك؟");
-  } else if (State.mode === "ACTIVE" || State.mode === "REWARD") {
-    updateLevels();
+  const qty = cartQtyTotal();
+  if (qty === 0) {
+    // سلة فاضية → تُحذف المكافأة تماماً وتُغلق نافذتها
+    if (State.reward) {
+      State.reward = null;
+      State.rewardActivated = false;
+      clearInterval(State.timer);
+      $("#rewardModal").classList.add("hidden");
+    }
+    if (State.mode !== "PASSIVE") {
+      State.mode = "PASSIVE";
+      State.levelIndex = 0;
+      $("#aiLevels").classList.add("hidden");
+      flowStep = 0;
+      salesFlowStep();
+    }
+  } else {
+    // رجعت السلة لمنتج واحد → تُغلق نافذة المكافأة وتُلغى حتى تُعاد الإضافة
+    if (State.reward && qty < 2) {
+      if (State.rewardActivated) {
+        State.rewardActivated = false;
+        setBubble(`🎁 مكافأتك «${State.reward.label}» معلّقة — أضف منتجاً لتفعيلها`);
+      }
+      $("#rewardModal").classList.add("hidden");
+    }
+    if (State.mode === "ACTIVE" || State.mode === "REWARD") {
+      updateLevels();
+    }
   }
 
   $("#cartItems").innerHTML = ids.length
@@ -280,6 +301,66 @@ function suggestNext() {
       ? `💡 يكمل تجربتك: ${comps[0].name} — موجود بعلامة ✨`
       : "تجربتك صارت متكاملة ☕ استمتع بقهوتك!");
   }
+}
+
+// ---------- مساعد البيع التفاعلي (اكتشاف اهتمام العميل) ----------
+let flowStep = 0;
+const SALES_FLOW = [
+  { q: "أهلاً فيك في نجدية ☕ ودّي أساعدك تختار — تفضّل قهوة سعودية ولا مختصة؟",
+    chips: [
+      { t: "قهوة سعودية", cat: "arabic" },
+      { t: "قهوة مختصة", cat: "specialty" },
+    ] },
+  { q: "اختيار ذوّاقة 👌 تحب الأكواب السيراميك ولا مج التنقّل الحراري؟",
+    chips: [
+      { t: "أكواب سيراميك", cat: "cups" },
+      { t: "مج تنقّل", cat: "cups" },
+    ] },
+  { q: "تمام — تدوّر على تجربة منزلية تحضّرها بنفسك ولا ضيافة للضيوف؟",
+    chips: [
+      { t: "تجربة منزلية", cat: "tools" },
+      { t: "ضيافة عربية", cat: "arabic" },
+    ] },
+  { q: "وش رايك أبدأ معك بطقم تحضير متكامل يوفّر عليك الاختيار؟",
+    chips: [
+      { t: "ورّني الطقم 🎁", bundles: true },
+      { t: "بكمّل تصفّحي", dismiss: true },
+    ] },
+];
+
+function gotoCat(cat) {
+  State.category = cat;
+  State.search = "";
+  $("#searchInput").value = "";
+  document.querySelectorAll(".nav a").forEach((x) =>
+    x.classList.toggle("active", x.dataset.cat === cat));
+  renderProducts();
+  window.scrollTo({ top: 360, behavior: "smooth" });
+}
+
+function salesFlowStep() {
+  if (cartQtyTotal() > 0 || State.mode !== "PASSIVE") return;
+  const step = SALES_FLOW[flowStep];
+  if (!step) {
+    setBubble("جاهز أساعدك بأي وقت ☕ — تصفّح وانا معك خطوة بخطوة");
+    return;
+  }
+  setBubble(step.q, step.chips.map((c) => ({
+    t: c.t,
+    fn: () => {
+      if (c.dismiss) {
+        flowStep = 0;
+        setBubble("تمام 🌿 تصفّح على راحتك، ولو احتجت ترشيح أنا حاضر");
+        return;
+      }
+      if (c.cat) gotoCat(c.cat);
+      if (c.bundles) {
+        $("#bundlesSec").scrollIntoView({ behavior: "smooth" });
+      }
+      flowStep++;
+      setTimeout(salesFlowStep, 750);
+    },
+  })));
 }
 
 // ---------- تفاصيل المنتج ----------
@@ -444,7 +525,21 @@ function renderLockedReward() {
 }
 
 // ---------- مساعدات ----------
-function setBubble(t) { $("#bubbleText").textContent = t; }
+function setBubble(t, chips) {
+  $("#bubbleText").textContent = t;
+  const box = $("#bubbleChips");
+  if (!chips || !chips.length) {
+    box.innerHTML = "";
+    box.classList.add("hidden");
+    return;
+  }
+  box.classList.remove("hidden");
+  box.innerHTML = chips
+    .map((c, i) => `<button class="bchip" data-ci="${i}">${c.t}</button>`)
+    .join("");
+  box.querySelectorAll("[data-ci]").forEach((b) =>
+    b.addEventListener("click", () => chips[+b.dataset.ci].fn()));
+}
 function toast(msg, kind = "") {
   const t = document.createElement("div");
   t.className = "toast " + kind;
@@ -467,6 +562,7 @@ function init() {
   renderBundles();
   renderProducts();
   renderCart();
+  salesFlowStep();
 
   document.querySelectorAll(".nav a").forEach((a) =>
     a.addEventListener("click", (e) => {
