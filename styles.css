@@ -29,7 +29,8 @@ h1,h2,h3,h4{font-family:"Cairo","Tajawal",sans-serif;line-height:1.25;
 .topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:var(--s5);
   padding:14px 28px;background:rgba(253,250,245,.82);backdrop-filter:blur(18px) saturate(160%);
   -webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid rgba(224,212,191,.7)}
-.brand{display:flex;flex-direction:column;line-height:1.02}
+.brand{display:flex;align-items:center;line-height:1.02}
+.brand-logo{height:42px;width:auto;display:block;object-fit:contain}
 .logo{font-family:"Cairo",sans-serif;font-weight:900;font-size:26px;color:var(--brand);
   letter-spacing:-.5px}
 .logo-sub{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:2px}
@@ -97,8 +98,8 @@ h1,h2,h3,h4{font-family:"Cairo","Tajawal",sans-serif;line-height:1.25;
 /* ===== الهيرو ===== */
 .hero{position:relative;min-height:440px;display:flex;align-items:center;
   justify-content:center;overflow:hidden;text-align:center;padding:80px 22px;color:#fff;
-  background:linear-gradient(105deg,rgba(36,26,18,.78),rgba(74,51,36,.55)),
-   url("https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=1900&q=80") center/cover}
+  background:linear-gradient(105deg,rgba(28,20,13,.74),rgba(50,34,22,.5)),
+   url("images/hero.png") center/cover}
 .hero-glow{position:absolute;width:680px;height:680px;border-radius:50%;top:-280px;
   left:50%;transform:translateX(-50%);
   background:radial-gradient(circle,rgba(230,185,77,.4),transparent 65%);
