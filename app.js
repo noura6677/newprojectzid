@@ -149,6 +149,7 @@ function addBundle(bid) {
 function changeQty(id, d) {
   State.cart[id] += d;
   if (State.cart[id] <= 0) delete State.cart[id];
+  if (State.reward && !State.rewardActivated && cartQtyTotal() >= 2) activateReward();
   renderProducts();
   renderCart();
 }
