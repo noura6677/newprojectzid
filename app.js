@@ -53,15 +53,17 @@ function renderBundles() {
   $("#bundles").innerHTML = BUNDLES.map((b) => {
     const items = b.items.map(P);
     const total = items.reduce((s, p) => s + p.price, 0);
+    const strip = items.map((p) =>
+      `<div class="bmini"><div class="bmini-img">${p.emoji}${imgTag(p)}</div>
+        <span>${p.name}</span></div>`).join('<i class="bplus">+</i>');
     return `<div class="bundle-card">
-      <div class="bimg">${imgTag(b)}<span class="btag">حزمة</span></div>
+      <div class="bundle-strip"><span class="btag">حزمة · ${items.length} منتجات</span>
+        ${strip}</div>
       <div class="bundle-body">
         <h3>${b.name}</h3>
         <p class="tg">${b.tagline}</p>
-        <div class="bundle-items">${items.map((p) =>
-          `<span>${p.emoji} ${p.name}</span>`).join("")}</div>
         <div class="bundle-foot">
-          <div class="bprice"><b>${fmt(total)}</b><small>${items.length} منتجات</small></div>
+          <div class="bprice"><b>${fmt(total)}</b><small>${items.length} منتجات بسعر واحد</small></div>
           <button class="bundle-add" data-bundle="${b.id}">أضف الحزمة كاملة</button>
         </div>
       </div></div>`;
@@ -125,7 +127,7 @@ function addToCart(id, fromReco = false) {
   State.cart[id] = (State.cart[id] || 0) + 1;
   if (fromReco) State.respondedToAI = true;
   if (wasEmpty) activateSellingMode();
-  if (State.reward && !State.rewardActivated && cartLines().length >= 2) activateReward();
+  if (State.reward && !State.rewardActivated && cartQtyTotal() >= 2) activateReward();
   renderProducts();
   renderCart();
   if (State.mode === "ACTIVE" && !fromReco) suggestNext();
@@ -137,7 +139,7 @@ function addBundle(bid) {
   b.items.forEach((id) => { State.cart[id] = (State.cart[id] || 0) + 1; });
   State.respondedToAI = true;
   if (wasEmpty) activateSellingMode();
-  if (State.reward && !State.rewardActivated && cartLines().length >= 2) activateReward();
+  if (State.reward && !State.rewardActivated && cartQtyTotal() >= 2) activateReward();
   renderProducts();
   renderCart();
   openCart();
@@ -198,14 +200,13 @@ function renderSmartBundle() {
   if (!parts) { el.classList.add("hidden"); return; }
   el.classList.remove("hidden");
   const total = parts.reduce((s, p) => s + p.price, 0);
+  const strip = parts.map((p) =>
+    `<div class="sbm"><div class="sbm-img">${p.emoji}${imgTag(p)}</div>
+      <span>${p.name}</span></div>`).join('<i class="bplus">+</i>');
   el.innerHTML = `
-    <div class="sb-img">🎁<img src="${IMG("coffee,brewing,set", 51)}"
-      alt="حزمة" loading="lazy" onerror="this.style.display='none'"></div>
-    <div class="sb-in">
-      <h4>✨ أكمل تجربتك — حزمة مقترحة</h4>
-      <p>${parts.map((p) => p.name).join(" + ")}</p>
-      <button class="sb-btn" id="sbAdd">أضف الحزمة (${fmt(total)})</button>
-    </div>`;
+    <h4>✨ أكمل تجربتك — حزمة مقترحة</h4>
+    <div class="sb-strip">${strip}</div>
+    <button class="sb-btn" id="sbAdd">أضف الحزمة كاملة (${fmt(total)})</button>`;
   $("#sbAdd").addEventListener("click", () => {
     parts.forEach((p) => addToCart(p.id, true));
     toast("✨ أضفنا ما يكمّل تجربتك", "good");
@@ -318,7 +319,7 @@ function openDetail(id) {
 function onCheckout() {
   const ids = cartLines();
   if (!ids.length) { toast("السلة فارغة — أضف منتجاً أولاً ☕"); return; }
-  if (ids.length === 1 && !State.respondedToAI && !State.reward) {
+  if (cartQtyTotal() === 1 && !State.reward) {
     State.mode = "CHECKOUT";
     openRoulette();
   } else {
@@ -330,6 +331,7 @@ function onCheckout() {
 }
 
 let wheelAngle = 0;
+let rouletteTimeout = null;
 function drawWheel() {
   const ctx = $("#wheel").getContext("2d");
   const n = ROULETTE_PRIZES.length, R = 160, cx = 160, cy = 160;
@@ -351,9 +353,13 @@ function drawWheel() {
 }
 
 function openRoulette() {
+  clearTimeout(rouletteTimeout);
   $("#rouletteModal").classList.remove("hidden");
   wheelAngle = 0; drawWheel();
+  $("#wheel").style.transition = "none";
   $("#wheel").style.transform = "rotate(0deg)";
+  void $("#wheel").offsetWidth;
+  $("#wheel").style.transition = "";
   $("#spinBtn").disabled = false;
 }
 
@@ -372,7 +378,8 @@ function spinWheel() {
   const seg = 360 / n;
   const target = 360 * 6 + (360 - (idx * seg + seg / 2)) - 90;
   $("#wheel").style.transform = `rotate(${target}deg)`;
-  setTimeout(() => {
+  clearTimeout(rouletteTimeout);
+  rouletteTimeout = setTimeout(() => {
     $("#rouletteModal").classList.add("hidden");
     grantReward(ROULETTE_PRIZES[idx]);
   }, 4800);
