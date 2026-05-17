@@ -179,7 +179,9 @@ function renderCart() {
       State.mode = "PASSIVE";
       State.levelIndex = 0;
       $("#aiLevels").classList.add("hidden");
-      askedTopics.clear();
+      funnelStep = 0;
+      Pref.coffee = null;
+      Pref.use = null;
       salesFlowStep();
     }
   } else {
@@ -317,30 +319,10 @@ function suggestNext() {
   }
 }
 
-// ---------- مساعد البيع التفاعلي (يكتشف اهتمام العميل بلطف) ----------
-const SALES_TOPICS = [
-  { q: "تفضّل قهوة سعودية ولا مختصة؟",
-    opts: [
-      { t: "أحب القهوة السعودية", cat: "arabic" },
-      { t: "أميل للقهوة المختصة", cat: "specialty" },
-    ] },
-  { q: "تحب الأكواب السيراميك ولا مج التنقّل؟",
-    opts: [
-      { t: "أكواب سيراميك للبيت", cat: "cups" },
-      { t: "مج حراري للتنقّل", cat: "cups" },
-    ] },
-  { q: "تدوّر تجربة تحضّرها بنفسك ولا ضيافة للضيوف؟",
-    opts: [
-      { t: "تجربة منزلية أحضّرها", cat: "tools" },
-      { t: "ضيافة عربية للضيوف", cat: "arabic" },
-    ] },
-  { q: "ودّك أبدأ معك بطقم تحضير متكامل؟",
-    opts: [
-      { t: "نعم، ورّني الطقم 🎁", bundles: true },
-      { t: "بكمّل تصفّحي بنفسي", dismiss: true },
-    ] },
-];
-const askedTopics = new Set();
+// ---------- مساعد بيع محادثي خفيف (يكتشف النية ثم يقود طبيعياً) ----------
+// تدفّق موجّه قصير وغير متطفّل: نية القهوة → سياق الاستخدام → ترشيح طبيعي
+let funnelStep = 0;
+const Pref = { coffee: null, use: null };
 
 function gotoCat(cat) {
   State.category = cat;
@@ -352,37 +334,37 @@ function gotoCat(cat) {
   window.scrollTo({ top: 360, behavior: "smooth" });
 }
 
-// القائمة الرئيسية: اقتراحات لطيفة (كل اقتراح بطاقة سؤال)
-function salesFlowStep() {
-  if (cartQtyTotal() > 0 || State.mode !== "PASSIVE") return;
-  const remaining = SALES_TOPICS.filter((t) => !askedTopics.has(t.q));
-  if (!remaining.length) {
-    setBubble("ذوقك صار واضح لي ☕ تصفّح وانا معك لو حبيت ترشيح آخر");
-    return;
-  }
-  setBubble("هلا فيك 🌿 وش يناسب ذوقك اليوم؟",
-    remaining.map((topic) => ({
-      t: topic.q,
-      fn: () => askTopic(topic),
-    })));
+// المنتج المناسب حسب النية المكتشفة
+function pickPick() {
+  if (Pref.coffee === "arabic")
+    return Pref.use === "host" ? P("ar2") : P("ar1");
+  return Pref.use === "host" ? P("sp1") : P("sp2");
 }
 
-// عند اختيار اقتراح: تظهر خياراته بنفس الأسلوب اللطيف
-function askTopic(topic) {
-  setBubble(topic.q, topic.opts.map((o) => ({
-    t: o.t,
-    fn: () => {
-      askedTopics.add(topic.q);
-      if (o.dismiss) {
-        setBubble("تمام 🌿 تصفّح على راحتك، وأنا حاضر لو احتجتني");
-        return;
-      }
-      if (o.cat) gotoCat(o.cat);
-      if (o.bundles) $("#bundlesSec").scrollIntoView({ behavior: "smooth" });
-      setBubble("اختيار موفّق 👌 جهّزت لك المناسب — تحب أرشّح لك شي ثاني؟",
-        [{ t: "ورّني ترشيح ثاني", fn: () => salesFlowStep() }]);
-    },
-  })));
+function salesFlowStep() {
+  // المساعد يعمل فقط بهدوء قبل بدء السلة — بلا تطفّل ولا تكرار
+  if (cartQtyTotal() > 0 || State.mode !== "PASSIVE") return;
+
+  if (funnelStep === 0) {
+    setBubble("أهلاً فيك في نجدية ☕ تفضّل القهوة السعودية أو المختصة؟", [
+      { t: "السعودية", fn: () => { Pref.coffee = "arabic"; gotoCat("arabic"); funnelStep = 1; setTimeout(salesFlowStep, 650); } },
+      { t: "المختصة", fn: () => { Pref.coffee = "specialty"; gotoCat("specialty"); funnelStep = 1; setTimeout(salesFlowStep, 650); } },
+    ]);
+  } else if (funnelStep === 1) {
+    setBubble("ذوق راقٍ 👌 تدوّر تجربة استخدام يومي أو ضيافة للضيوف؟", [
+      { t: "استخدام يومي", fn: () => { Pref.use = "daily"; funnelStep = 2; salesFlowStep(); } },
+      { t: "ضيافة", fn: () => { Pref.use = "host"; funnelStep = 2; salesFlowStep(); } },
+    ]);
+  } else if (funnelStep === 2) {
+    const pick = pickPick();
+    funnelStep = 3;
+    setBubble(`بناءً على ذوقك، «${pick.name}» خيار يلمع لك — أبدأ لك فيه؟`, [
+      { t: "أضِفه لي ✨", fn: () => { addToCart(pick.id, true); toast("أضفناه لك ✨", "good"); } },
+      { t: "ورّني البوكسات 🎁", fn: () => { $("#bundlesSec").scrollIntoView({ behavior: "smooth" }); setBubble("جمّعنا لك بوكسات متكاملة توفّر عليك ☕"); } },
+    ]);
+  } else {
+    setBubble("تصفّح على راحتك 🌿 وأنا أكمّل معك لمّا تضيف أول منتج");
+  }
 }
 
 // ---------- تفاصيل المنتج ----------
@@ -586,17 +568,6 @@ function init() {
   renderProducts();
   renderCart();
   salesFlowStep();
-
-  $("#aiBubble").addEventListener("click", () => {
-    if ($("#aiBubble").classList.contains("mini")) {
-      $("#aiBubble").classList.remove("mini");
-      salesFlowStep();
-    }
-  });
-  $("#bubbleMin").addEventListener("click", (e) => {
-    e.stopPropagation();
-    $("#aiBubble").classList.add("mini");
-  });
 
   document.querySelectorAll(".nav a").forEach((a) =>
     a.addEventListener("click", (e) => {
