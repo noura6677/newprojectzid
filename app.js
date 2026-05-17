@@ -118,8 +118,15 @@ function renderProducts() {
 // ---------- السلة ----------
 function cartLines() { return Object.keys(State.cart); }
 function cartQtyTotal() { return Object.values(State.cart).reduce((a, b) => a + b, 0); }
-function cartTotalPrice() {
+function cartSubtotal() {
   return cartLines().reduce((s, id) => s + P(id).price * State.cart[id], 0);
+}
+function rewardDiscount() {
+  return State.reward && State.rewardActivated && State.reward.discount
+    ? State.reward.discount : 0;
+}
+function cartTotalPrice() {
+  return Math.round(cartSubtotal() * (1 - rewardDiscount()));
 }
 
 function addToCart(id, fromReco = false) {
@@ -172,7 +179,7 @@ function renderCart() {
       State.mode = "PASSIVE";
       State.levelIndex = 0;
       $("#aiLevels").classList.add("hidden");
-      flowStep = 0;
+      askedTopics.clear();
       salesFlowStep();
     }
   } else {
@@ -209,7 +216,14 @@ function renderCart() {
       changeQty(pid, +d);
     }));
 
-  $("#cartTotal").textContent = fmt(cartTotalPrice());
+  const disc = rewardDiscount();
+  if (disc > 0) {
+    $("#cartTotal").innerHTML =
+      `<s class="ct-old">${fmt(cartSubtotal())}</s> ${fmt(cartTotalPrice())}
+       <span class="ct-save">وفّرت ${Math.round(disc * 100)}%</span>`;
+  } else {
+    $("#cartTotal").textContent = fmt(cartTotalPrice());
+  }
   renderLockedReward();
   renderSmartBundle();
 }
@@ -303,30 +317,30 @@ function suggestNext() {
   }
 }
 
-// ---------- مساعد البيع التفاعلي (اكتشاف اهتمام العميل) ----------
-let flowStep = 0;
-const SALES_FLOW = [
-  { q: "أهلاً فيك في نجدية ☕ ودّي أساعدك تختار — تفضّل قهوة سعودية ولا مختصة؟",
-    chips: [
-      { t: "قهوة سعودية", cat: "arabic" },
-      { t: "قهوة مختصة", cat: "specialty" },
+// ---------- مساعد البيع التفاعلي (يكتشف اهتمام العميل بلطف) ----------
+const SALES_TOPICS = [
+  { q: "تفضّل قهوة سعودية ولا مختصة؟",
+    opts: [
+      { t: "أحب القهوة السعودية", cat: "arabic" },
+      { t: "أميل للقهوة المختصة", cat: "specialty" },
     ] },
-  { q: "اختيار ذوّاقة 👌 تحب الأكواب السيراميك ولا مج التنقّل الحراري؟",
-    chips: [
-      { t: "أكواب سيراميك", cat: "cups" },
-      { t: "مج تنقّل", cat: "cups" },
+  { q: "تحب الأكواب السيراميك ولا مج التنقّل؟",
+    opts: [
+      { t: "أكواب سيراميك للبيت", cat: "cups" },
+      { t: "مج حراري للتنقّل", cat: "cups" },
     ] },
-  { q: "تمام — تدوّر على تجربة منزلية تحضّرها بنفسك ولا ضيافة للضيوف؟",
-    chips: [
-      { t: "تجربة منزلية", cat: "tools" },
-      { t: "ضيافة عربية", cat: "arabic" },
+  { q: "تدوّر تجربة تحضّرها بنفسك ولا ضيافة للضيوف؟",
+    opts: [
+      { t: "تجربة منزلية أحضّرها", cat: "tools" },
+      { t: "ضيافة عربية للضيوف", cat: "arabic" },
     ] },
-  { q: "وش رايك أبدأ معك بطقم تحضير متكامل يوفّر عليك الاختيار؟",
-    chips: [
-      { t: "ورّني الطقم 🎁", bundles: true },
-      { t: "بكمّل تصفّحي", dismiss: true },
+  { q: "ودّك أبدأ معك بطقم تحضير متكامل؟",
+    opts: [
+      { t: "نعم، ورّني الطقم 🎁", bundles: true },
+      { t: "بكمّل تصفّحي بنفسي", dismiss: true },
     ] },
 ];
+const askedTopics = new Set();
 
 function gotoCat(cat) {
   State.category = cat;
@@ -338,27 +352,35 @@ function gotoCat(cat) {
   window.scrollTo({ top: 360, behavior: "smooth" });
 }
 
+// القائمة الرئيسية: اقتراحات لطيفة (كل اقتراح بطاقة سؤال)
 function salesFlowStep() {
   if (cartQtyTotal() > 0 || State.mode !== "PASSIVE") return;
-  const step = SALES_FLOW[flowStep];
-  if (!step) {
-    setBubble("جاهز أساعدك بأي وقت ☕ — تصفّح وانا معك خطوة بخطوة");
+  const remaining = SALES_TOPICS.filter((t) => !askedTopics.has(t.q));
+  if (!remaining.length) {
+    setBubble("ذوقك صار واضح لي ☕ تصفّح وانا معك لو حبيت ترشيح آخر");
     return;
   }
-  setBubble(step.q, step.chips.map((c) => ({
-    t: c.t,
+  setBubble("هلا فيك 🌿 وش يناسب ذوقك اليوم؟",
+    remaining.map((topic) => ({
+      t: topic.q,
+      fn: () => askTopic(topic),
+    })));
+}
+
+// عند اختيار اقتراح: تظهر خياراته بنفس الأسلوب اللطيف
+function askTopic(topic) {
+  setBubble(topic.q, topic.opts.map((o) => ({
+    t: o.t,
     fn: () => {
-      if (c.dismiss) {
-        flowStep = 0;
-        setBubble("تمام 🌿 تصفّح على راحتك، ولو احتجت ترشيح أنا حاضر");
+      askedTopics.add(topic.q);
+      if (o.dismiss) {
+        setBubble("تمام 🌿 تصفّح على راحتك، وأنا حاضر لو احتجتني");
         return;
       }
-      if (c.cat) gotoCat(c.cat);
-      if (c.bundles) {
-        $("#bundlesSec").scrollIntoView({ behavior: "smooth" });
-      }
-      flowStep++;
-      setTimeout(salesFlowStep, 750);
+      if (o.cat) gotoCat(o.cat);
+      if (o.bundles) $("#bundlesSec").scrollIntoView({ behavior: "smooth" });
+      setBubble("اختيار موفّق 👌 جهّزت لك المناسب — تحب أرشّح لك شي ثاني؟",
+        [{ t: "ورّني ترشيح ثاني", fn: () => salesFlowStep() }]);
     },
   })));
 }
@@ -469,7 +491,8 @@ function spinWheel() {
 
 // ---------- المكافأة + المؤقت ----------
 function grantReward(prize) {
-  State.reward = { label: prize.label, emoji: prize.emoji, img: prize.img };
+  State.reward = { label: prize.label, emoji: prize.emoji, img: prize.img,
+    discount: prize.discount || 0 };
   State.rewardActivated = false;
   State.mode = "REWARD";
   $("#rewardImg").innerHTML = `${prize.emoji}<img src="${prize.img}" alt="${prize.label}"
@@ -563,6 +586,17 @@ function init() {
   renderProducts();
   renderCart();
   salesFlowStep();
+
+  $("#aiBubble").addEventListener("click", () => {
+    if ($("#aiBubble").classList.contains("mini")) {
+      $("#aiBubble").classList.remove("mini");
+      salesFlowStep();
+    }
+  });
+  $("#bubbleMin").addEventListener("click", (e) => {
+    e.stopPropagation();
+    $("#aiBubble").classList.add("mini");
+  });
 
   document.querySelectorAll(".nav a").forEach((a) =>
     a.addEventListener("click", (e) => {

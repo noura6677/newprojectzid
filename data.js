@@ -97,10 +97,11 @@ const CAT_TITLES = {
 
 // جوائز العجلة — كل جائزة بصورة حقيقية تمثّلها
 const ROULETTE_PRIZES = [
-  { label: "توصيل مجاني", emoji: "🚚", weight: 30, img: U("1607081692251-d3e1c0c9a0f0") },
-  { label: "كوب مجاني",  emoji: "🍵", weight: 25, img: U("1514432324607-a09d9b4aefdd") },
-  { label: "بوكس قهوة",  emoji: "🎁", weight: 10, img: U("1607681034540-2c46cc71896d") },
-  { label: "منتج إضافي", emoji: "☕", weight: 20, img: U("1447933601403-0c6688de566e") },
+  { label: "توصيل مجاني", emoji: "🚚", weight: 28, img: U("1607081692251-d3e1c0c9a0f0") },
+  { label: "كوب مجاني",  emoji: "🍵", weight: 24, img: U("1514432324607-a09d9b4aefdd") },
+  { label: "خصم 10%",    emoji: "🏷️", weight: 22, discount: 0.10, img: U("1556742502-ec7c0e9f34b1") },
+  { label: "منتج إضافي", emoji: "☕", weight: 18, img: U("1447933601403-0c6688de566e") },
+  { label: "خصم 20%",    emoji: "🏷️", weight: 8,  discount: 0.20, img: U("1556742208-999815fca738") },
 ];
 
 const DEAL_CONFIG = {
